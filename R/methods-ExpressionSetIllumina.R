@@ -50,7 +50,7 @@ setMethod("[", "ExpressionSetIllumina", function(x, i, j, ..., drop = FALSE) {
     featureData(x) <- featureData(x)[i,,..., drop=drop]
   ## assayData; implemented here to avoid function call
   orig <- assayData(x)
-  ###I took this code from the eSet methods in Biobase
+  ###I took this code from the eSet methods in Biobase to allow for empty se.exprs, nObservations, Detection
   storage.mode <- Biobase:::assayDataStorageMode(orig)
   
   assayData(x) <-

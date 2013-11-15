@@ -133,3 +133,19 @@ plotProbe <- function(symbol,rng, tx){
   tracks(p1, autoplot(p2,aes(fill=PROBEQUALITY)))
   
 }
+
+
+experimentalDesign <- function(summaryData, SampleGroup="SampleGroup", Chip = "Sentrix_ID", Position="Sentrix_Position",useSampleNames=FALSE){
+  pd <- pData(summaryData)
+  
+  if(useSampleNames) {Chip = strtrim(sampleNames(summaryData), 10);Position = substr(sampleNames(summaryData),12,13)
+  } 
+  else {Chip = pd[,Chip];Position = pd[,Position] 
+  }
+  data <- data.frame(Group = pd[,SampleGroup], Chip, Position)
+  
+  ggplot(data, aes(x = Position, y = Chip, fill=Group)) + geom_tile()
+  
+}
+  
+  
