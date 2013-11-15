@@ -1,0 +1,78 @@
+useDynLib(beadarray)
+import(Biobase)
+import(graphics)
+import(AnnotationDbi)
+
+importFrom(reshape2, melt)
+
+#import(ggplot2)
+
+importFrom(BiocGenerics, annotation, "annotation<-")
+
+importFrom(limma, normalizeQuantiles, neqc)
+import(BeadDataPackR)
+
+importFrom(stats4, plot, summary)
+importFrom(BiocGenerics, boxplot, combine)
+
+exportClasses(beadLevelData, ExpressionSetIllumina, illuminaChannel, beadRegistrationData)
+exportMethods(show, "[[", dim, sectionNames, numBeads, boxplot, exprs, se.exprs,nObservations,Detection, annotation, "annotation<-","se.exprs<-","exprs<-", "nObservations<-", "Detection<-", qcData, combine)
+
+export(insertBeadData, removeBeadData, getBeadData, plotChipLayout, createTargetsFile,  quickSummary, summarize, identifyControlBeads, insertSectionData, backgroundCorrectSingleSection, beadarrayUsersGuide, suggestAnnotation, addFeatureData)
+
+
+## Data input
+export(readIllumina, readLocsFile, convertBeadLevelList)
+
+## Dealing with Swath data
+export(processSwathData)
+
+## Raw image manipulation
+export(readTIFF, plotTIFF)
+
+## Image processing
+export(illuminaForeground, illuminaBackground, illuminaSharpen, medianBackground)
+
+## Transformations
+export(logGreenChannelTransform, logRedChannelTransform, logRatioTransform, greenChannelTransform, redChannelTransform,greenChannel)
+
+## QC
+export(plotBeadIntensities, genericBeadIntensityPlot, poscontPlot, outlierplot, imageplot, checkRegistration, makeQCTable, expressionQCPipeline, calculateOutlierStats, controlProbeDetection, plotBeadLocations, makeControlProfile, combinedControlPlot)
+
+## BASH etc.
+export(BASH, HULK, generateNeighbours, BASHCompact, BASHDiffuse, BASHExtended, setWeights,showArrayMask)
+
+## Summary Data
+export(readBeadSummaryData, plotMAXY, normaliseIllumina, medianNormalise,calculateDetection)
+
+## Deprecated functions.
+exportClasses(BeadLevelList)
+export(checkPlatform)
+export(getAnnotation, setAnnotation)
+export(beadStatusVector)
+
+##outlier methods
+
+export(illuminaOutlierMethod, squeezedVarOutlierMethod, weightsOutlierMethod, noOutlierMethod)
+
+
+##metrics methods
+
+exportMethods(metrics, p95, snr)
+
+##sample sheet
+
+export(readSampleSheet)
+#exportMethods(sampleSheet, "sampleSheet<-")
+
+export(simpleDE)
+export(ExpressionSetFromGEO)
+export(collapse)
+export(toRangedData)
+
+export(setSampleGroup)
+
+exportMethods(LogFC, "LogFC<-", LogOdds, "LogOdds<-")
+##deprecated
+
+

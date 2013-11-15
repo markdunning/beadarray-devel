@@ -1,0 +1,432 @@
+%\VignetteIndexEntry{Analysis of Bead-summary Data using beadarray} 
+%\VignetteKeywords{beadarray expression analysis} 
+%\VignettePackage{beadarray} 
+\documentclass{article}
+
+\textwidth=6.2in
+\textheight=8.5in
+%\parskip=.3cm 
+\oddsidemargin=.1in
+\evensidemargin=.1in
+\headheight=-.3in
+
+\newcommand{\Rfunction}[1]{{\texttt{#1}}}
+\newcommand{\Robject}[1]{{\texttt{#1}}}
+\newcommand{\Rpackage}[1]{{\textsf{#1}}}
+\newcommand{\Rmethod}[1]{{\texttt{#1}}}
+\newcommand{\Rfunarg}[1]{{\texttt{#1}}}
+\newcommand{\Rclass}[1]{{\textit{#1}}}
+
+%%Setting eval=FALSE until beadarrayExampleData becomes available
+\SweaveOpts{eval=TRUE, keep.source=FALSE}
+
+
+
+\begin{document}
+\title{Analysis of Bead-summary Data using beadarray}
+\author{Mark Dunning}
+\maketitle
+
+\section*{Introduction}
+%%\Rpackage{beadarray} is a package for the pre-processing and analysis of Illumina BeadArray. The main advantage is being able to read raw data created by Illumina's scanning software. Data created in this manner are in the same format regardless of the assay (i.e expression, genotyping, methylation) being performed. Thus, beadarray is able to handle all these types of data. Many functions within beadarray have been written to cope with this flexibility. 
+
+The BeadArray technology involves randomly arranged arrays of beads, with beads having the same probe sequence attached colloquially known as a bead-type. BeadArrays are combined in parallel on either a rectangular chip (BeadChip) or a matrix of 8 by 12 hexagonal arrays (Sentrix Array Matrix or SAM). The BeadChip is further divided into strips on the surface known as sections, with each section giving rise to a different image when scanned by BeadScan. These images, and associated text files, comprise the raw data for a beadarray analysis. However, for BeadChips, the number of sections assigned to each biological sample may vary from 1 on HumanHT12 chips, 2 on HumanWG6 chips or sometimes ten or more for SNP chips with large numbers of SNPs being investigated. 
+
+This vignette demonstrates the analysis of bead summary data using beadarray. The recommended approach to obtain these data is to start with bead-level data and follow the steps illustrated in the vignette {\tt beadlevel.pdf} distributed with \Rpackage{beadarray}. If bead-level data are not available, the output of Illumina's BeadStudio or GenomeStudio can be read by \Rpackage{beadarray}. Example code to do this is provided at the end of this vignette. However, the same object types are produced from either of these routes and the same functionality is available.
+
+To make the most use of the code in this vignette, you will need to install the \Rpackage{beadarrayExampleData} and \Rpackage{illuminaHumanv3.db} packages from {\tt Bioconductor}. 
+
+<<installExampleData, echo=TRUE,eval=FALSE>>=
+source("http://www.bioconductor.org/biocLite.R")
+biocLite(c("beadarrayExampleData", "illuminaHumanv3.db"))
+
+@
+
+The code used to produce these example data is given in the vignette of \Rpackage{beadarrayExampleData}, which follow similar steps to those described in the {\tt beadlevel.pdf} vignette of \Rpackage{beadarray}. The following commands give a basic description of the data.
+
+<<prelim, echo=TRUE>>=
+library("beadarray")
+
+require(beadarrayExampleData)
+
+data(exampleSummaryData)
+
+exampleSummaryData
+
+
+@
+
+
+
+Summarized data are stored in an object of type \Rclass{ExpressionSetIllumina} which
+is an extension of the \Rclass{ExpressionSet} class developed by the Bioconductor team as a container for data from high-throughput assays. Objects of this type use a series of slots to store the data.  For consistency with the definition of other \Rclass{ExpressionSet} objects, we refer to the expression values as the \Robject{exprs} matrix (this stores the probe-specific average intensities) which can be accessed using \Rfunction{exprs} and subset in the usual manner. The \Robject{se.exprs} matrix, which stores the probe-specific variability can be accessed using \Rfunction{se.exprs}. You may notice that the expression values have already been transformed to the log$_2$ scale, which is an option in the \Rfunction{summarize} function in \Rpackage{beadarray}. Data exported from BeadStudio or GenomeStudio will usually be un-transformed and on the scale $0$ to $2^{16}$.
+
+
+
+<<objectPeek, echo=TRUE>>=
+
+exprs(exampleSummaryData)[1:5,1:5]
+se.exprs(exampleSummaryData)[1:5,1:5]
+
+
+@
+
+\section*{feature and pheno data}
+
+The \Rfunction{fData} and \Rfunction{pData} functions are useful shortcuts to find more information about the features (rows) and samples (columns) in the summary object. These annotations are created automatically whenever a bead-level data is summarized (see {\tt beadlevel.pdf}) or read from a BeadStudio file. The \Rfunction{fData} will be added to later, but initially contains information on whether each probe is a control or not. In this example the \Robject{phenoData} denotes the sample group for each array; either Brain or UHRR (Universal Human Reference RNA).
+
+<<annotations>>=
+
+head(fData(exampleSummaryData))
+table(fData(exampleSummaryData)[,"Status"])
+
+pData(exampleSummaryData)
+
+@
+
+\section*{Subsetting the data}
+
+There are various way to subset an \Rclass{ExpressionSetIllumina} object, each of which returns an \Rclass{ExpressionSetIllumina} with the same slots, but different dimensions. When bead-level data are summarized by \Rpackage{beadarray} there is an option to apply different transformation options, and save the results as different channels in the resultant object. For instance, if summarizing two-colour data one might be interested in summarizing the red and green channels, or some combination of the two, separately. Both log$_2$ and un-logged data are stored in the \Robject{exampleSummaryData} object and can be accessed by using the \Rfunction{channel} function. Both the rows and columns in the resultant \Robject{ExpressionSetIllumina} object are kept in the same order.
+
+<<subsetting1>>=
+
+channelNames(exampleSummaryData)
+
+exampleSummaryData.log2 <- channel(exampleSummaryData, "G")
+exampleSummaryData.unlogged <- channel(exampleSummaryData, "G.ul")
+
+
+sampleNames(exampleSummaryData.log2)
+sampleNames(exampleSummaryData.unlogged)
+
+exprs(exampleSummaryData.log2)[1:10,1:3]
+exprs(exampleSummaryData.unlogged)[1:10,1:3]
+
+@
+
+As we have seen, the expression matrix of the \Robject{ExpressionSetIllumina} object can be subset by column or row, In fact, the same subset operations can be performed on the \Robject{ExpressionSetIllumina} object itself. In the following code, notice how the number of samples and features changes in the output.
+
+<<subsetting2,eval=F>>=
+
+
+exampleSummaryData.log2[,1:4]
+exampleSummaryData.log2[1:10,]
+
+@
+
+The object can also be subset by a vector of characters which must correspond to the names of features (i.e. row names). Currently, no analogous functions is available to subset by sample.
+
+<<subsetting4,eval=F>>=
+
+randIDs <- sample(featureNames(exampleSummaryData), 1000)
+
+exampleSummaryData[randIDs,]
+
+@
+
+\section*{Exploratory analysis using boxplots}
+
+
+Boxplots of intensity levels and the number of beads are useful for quality assessment purposes. \Rpackage{beadarray} includes a modified version of the \Rfunction{boxplot} function that can take any valid \Rclass{ExpressionSetIllumina} object and plot the expression matrix by default. For these examples we plot just a subset of the original \Robject{exampleSummaryData} object using random row IDs.
+
+
+<<boxplot1, fig=TRUE, echo=TRUE,width=8, height=4,eval=F>>=
+
+boxplot(exampleSummaryData.log2[randIDs,])
+
+@
+
+The function can also plot other \Robject{assayData} items, such as the number of observations.
+
+<<boxplot2, fig=TRUE, echo=TRUE,width=8, height=4,eval=F>>=
+
+boxplot(exampleSummaryData.log2[randIDs,], what="nObservations")
+
+@
+
+The default boxplot plots a separate box for each array, but often it is beneficial for compare expression levels between different sample groups. If this information is stored in the \Rclass{phenoData} slot it can be incorporated into the plot. The following compares the overall expression level between UHRR and Brain samples. 
+
+<<boxplot4, fig=TRUE, echo=TRUE,width=8, height=4,eval=F>>=
+
+boxplot(exampleSummaryData.log2[randIDs,], sampleFactor="SampleFac")
+
+@
+
+In a similar manner, we may wish to visualize the differences between sample groups for particular probe groups. As a simple example, we look at the difference between negative controls and regular probes for each array. You should notice that the negative controls as consistently lower (as expected) with the exception of array {\tt 4616443081\_B}.
+
+<<boxplot5, fig=TRUE, echo=TRUE,width=8, height=4,eval=F>>=
+
+boxplot(exampleSummaryData.log2[randIDs,], probeFactor = "Status")
+
+@
+
+Extra feature annotation is available from annotation packages in Bioconductor, and \Rpackage{beadarray} includes functionality to extract these data from the annotation packages. The {\tt annotation} of the object must be set in order that the correct annotation package can be loaded. For example, the \Robject{exampleSummaryData} object was generated from {\tt Humanv3} data so the \Rpackage{illuminaHumanv3.db} package must be present. The \Rfunction{addFeatureData} function annotates all features of an \Robject{ExpressionSetIllumina} object using particular mappings from the \Rpackage{illuminaHumanv3.db} package. To see which mappings are available you can use
+the \Rfunction{illuminaHumanv3()} function, or equivalent from other packages.
+
+<<addFdata>>=
+
+annotation(exampleSummaryData)
+
+exampleSummaryData.log2 <- addFeatureData(exampleSummaryData.log2, toAdd = c("SYMBOL", "PROBEQUALITY", "CODINGZONE", "PROBESEQUENCE", "GENOMICLOCATION"))
+
+head(fData(exampleSummaryData.log2))
+
+illuminaHumanv3()
+
+@
+
+
+If we suspect that a particular gene may be differentially expressed between conditions, we can subset the \Rclass{ExpressionSetIllumina} object to just include probes that target the gene, and plot the response of these probes against the sample groups. Furthermore, the different probes can be distinguished using the \Rfunarg{probeFactor} parameter.
+
+<<boxplot6, fig=TRUE, echo=TRUE,width=8, height=4,eval=F>>=
+ids <- which(fData(exampleSummaryData.log2)[,"SYMBOL"] == "ALB")
+
+boxplot(exampleSummaryData.log2[ids,], sampleFactor = "SampleFac", probeFactor = "IlluminaID")
+@
+
+\subsection*{A note about ggplot2}
+The \Rfunction{boxplot} function in \Rpackage{beadarray} creates graphics using the \Rpackage{ggplot2} package rather than the {\tt R} base graphics system. Therefore, the standard way of manipulating graphics using {\tt par} and {\tt mfrow} etc will not work with the output of \Rfunction{boxplot}. However, the \Rpackage{ggplot2} package has equivalent functionality and is a more powerful and flexible system. There are numerous tutorials on how to use the \Rpackage{ggplot2} package, which is beyond the scope of this vignette. In the below code, we assign the results of \Rfunction{boxplot} to objects that we combine using viewports (a concept from the {\tt grid} graphics system). The code also demonstrates how aspects of the plot can be altered programatically. 
+
+<<ggplot-layout,eval=F>>=
+require("gridExtra")
+bp1 <- boxplot(exampleSummaryData.log2[ids,], sampleFactor = "SampleFac", probeFactor = "IlluminaID") + labs(title = "ALB expression level comparison") + xlab("Illumina Probe") + ylab("Log2 Intensity")
+
+bp2 <- boxplot(exampleSummaryData.log2[randIDs,], probeFactor = "Status") + labs(title = "Control Probe Comparison")
+
+print(bp1, vp = viewport(width = 0.5, height = 1, x = 0.25, y = 0.5))
+print(bp2, vp = viewport(width = 0.5, height = 1, x = 0.75, y = 0.5))
+
+
+
+@
+
+
+\section*{Other exploratory analysis}
+
+Replicate samples can also be compared using the \Rfunction{plotMAXY}. 
+
+<<MAs, fig=TRUE, echo=TRUE,width=8, height=6>>=
+plotMAXY(exprs(exampleSummaryData), arrays=1:3,pch=16,log=FALSE)
+@
+
+
+In the top right corner we see the MA plots for all pairwise comparisons involving the 3 arrays. On
+an MA plot, for each probe we plot the average of the log2 -intensities from the two arrays on the x-axis
+and the difference in intensities (log -ratios) on the y-axis. For replicate arrays we would expect all
+probes to be unchanged between the two samples and hence most points on the plot should lie along
+the line y=0. In the lower left corner of the MAXY plot we see the XY plot and for replicate arrays we
+would expect to see most points along the diagonal y = x. From this MAXY plot it is obvious that the
+second array is systematically different to the other replicates and may benefit from normalisation.
+Both XY and MA plots are available separately for a particular comparison of arrays using plotXY
+and plotMA.\\
+
+\section*{Normalisation}
+
+To correct for differences in expression level across a chip and between chips we need to normalise
+the signal to make the arrays comparable. The normalisation methods available in the \Rpackage{affy} package, or
+variance-stabilising transformation from the \Rpackage{lumi} package may be applied using the \Rfunction{normaliseIllumina}
+function. Below we quantile normalise the log$_2$ transformed data.
+
+<<normalise1>>=
+
+exampleSummaryData.norm <- normaliseIllumina(exampleSummaryData.log2, method="quantile", transform="none")
+
+@
+
+An alternative approach is to combine normal-exponential background correction with quantile normalisation as suggested in the \Rpackage{limma} package. However, this requires data that have not been log-transformed. Note that the control probes are removed from the output object
+
+<<normalise2,eval=F>>=
+
+exampleSummaryData.norm2 <- normaliseIllumina(channel(exampleSummaryData, "G.ul"), method="neqc", transform="none")
+
+@
+
+
+
+\section*{Filtering}
+
+
+Filtering non-responding probes from further analysis can improve the power to detect differential expression. One way of achieving this is to remove probes whose probe sequence has undesirable properties. Four basic annotation quality categories (`Perfect', `Good', `Bad' and `No match') are defined and have been shown to correlate with expression level and measures of differential expression.
+We recommend removing probes assigned a `Bad' or `No match' quality score after normalization.
+This approach is similar to the common practice of removing lowly-expressed probes, but with the additional benefit of discarding probes with a high expression level caused by non-specific hybridization. You can verify the relationship between probe quality and intensity by using the boxplot function.
+
+<<filter, echo=TRUE, fig=TRUE>>=
+
+library(illuminaHumanv3.db)
+
+ids <- as.character(featureNames(exampleSummaryData.norm))
+
+qual <- unlist(mget(ids, illuminaHumanv3PROBEQUALITY, ifnotfound=NA))
+
+table(qual)
+
+rem <- qual == "No match" | qual == "Bad" | is.na(qual)
+
+exampleSummaryData.filt <- exampleSummaryData.norm[!rem,]
+
+dim(exampleSummaryData.filt)
+
+boxplot(exampleSummaryData.norm, probeFactor = "PROBEQUALITY", sampleFactor="SampleFac") + opts(axis.text.x=theme_text(angle=45, hjust=1)) +  xlab("Probe Quality") + ylab("Log2 Intensity")
+
+@
+
+\section*{Differential expression}
+
+The differential expression methods available in the limma package can be used to identify differentially
+expressed genes. The functions \Rfunction{lmFit} and \Rfunction{eBayes} can be applied to the normalised data.
+In the example below, we set up a design matrix for the example experiment and fit a linear model
+to summaries the data from the UHRR and Brain replicates to give one value per condition. We then
+define contrasts comparing the Brain sample to the UHRR and calculate moderated t-statistics with
+empirical Bayes shrinkage of the sample variances. In this particular experiment, the Brain and UHRR
+samples are very different and we would expect to see many differentially expressed genes.\\
+
+Empirical array quality weights can be used to measure the relative reliability of each array.  A variance is estimated for each array by the \Rfunction{arrayWeights} function which measures how well the expression values from each array follow the linear model.
+These variances are converted to relative weights which can then be used in the linear model to
+down-weight observations from less reliable arrays which improves power to detect differential
+expression. You should notice that some arrays have very low weight consistent with their poor QC.
+
+We then define a contrast comparing UHRR to Brain Reference and calculate moderated $t$-statistics with empirical Bayes' shrinkage of the sample variances.
+
+<<deanalysis>>=
+library(limma)
+
+rna <- factor(pData(exampleSummaryData)[,"SampleFac"])
+
+design <- model.matrix(~0+rna)
+colnames(design) <- levels(rna)
+aw <- arrayWeights(exprs(exampleSummaryData.filt), design)
+aw
+fit <- lmFit(exprs(exampleSummaryData.filt), design, weights=aw)
+contrasts <- makeContrasts(UHRR-Brain, levels=design)
+contr.fit <- eBayes(contrasts.fit(fit, contrasts))
+topTable(contr.fit, coef=1)
+
+@
+
+\section*{Annotation of results}
+
+The \Rfunction{topTable} function displays the results of the empirical Bayes analysis alongside the annotation assigned by Illumina to each probe in the linear model fit. Often this will not provide sufficient information to infer biological meaning from the results. Within Bioconductor, annotation packages are available for each of the major Illumina expression array platforms that map the probe sequences designed by Illumina to functional information useful for downstream analysis. As before, the \Rpackage{illuminaHumanv3.db} package can be used for the arrays in this example dataset. 
+
+<<annotation, echo=TRUE>>=
+
+ids2 <- featureNames(exampleSummaryData.filt)
+
+chr <- mget(ids2, illuminaHumanv3CHR, ifnotfound = NA)
+cytoband<- mget(ids2, illuminaHumanv3MAP, ifnotfound = NA)
+refseq <- mget(ids2, illuminaHumanv3REFSEQ, ifnotfound = NA)
+entrezid <- mget(ids2, illuminaHumanv3ENTREZID, ifnotfound = NA)
+symbol <- mget(ids2, illuminaHumanv3SYMBOL, ifnotfound = NA)
+genename <- mget(ids2, illuminaHumanv3GENENAME, ifnotfound = NA)
+
+anno <- data.frame(Ill_ID = ids2, Chr = as.character(chr),
+           Cytoband = as.character(cytoband), RefSeq = as.character(refseq),
+           EntrezID = as.numeric(entrezid), Symbol = as.character(symbol),
+           Name = as.character(genename))
+
+contr.fit$genes <- anno
+topTable(contr.fit)
+
+@
+
+
+\section*{Reading bead summary data into beadarray}
+BeadStudio/GenomeStudio is Illumina's proprietary software for analyzing data output by
+the scanning system (BeadScan/iScan).  It contains different modules for analyzing data from different platforms.  For further information on the software and how to export summarized data, refer to the user's manual.  In this section we consider how to read in and analyze output from the gene expression module of BeadStudio/GenomeStudio.\\
+
+
+The example dataset used in this section consists of an experiment with one Human
+WG-6 version 2 BeadChip.  These arrays were hybridized with the control RNA samples used in the MAQC project (3 replicates of UHRR and 3 replicates of Brain Reference RNA).
+
+
+The non-normalized data for regular and control probes was output by BeadStudio/GenomeStudio.
+
+
+The example BeadStudio output used in this section is available in the file \newline{\tt AsuragenMAQC\_BeadStudioOutput.zip}
+which can be downloaded from {\\tt http://www.switchtoi.com/datasets.ilmn}.
+
+You will need to download and unzip the contents of this file to the current  {\tt R} working directory.
+Inside this zip file you will find several files including summarized, non-normalized data
+and a file containing control information.  
+We give a more detailed description of each of the particular files we will make use of below.
+
+\begin{itemize}
+\item{Sample probe profile ({\tt AsuragenMAQC-probe-raw.txt}) ({\it required}) -
+text file which contains the non-normalized summary values as output by BeadStudio.
+Inside the file is a data matrix with some 48,000 rows.
+In newer versions of the software, these data are preceded by several lines of header information.
+Each row is a different probe in the experiment and the columns
+give different measurements for the gene. For each array, we record the summarized
+expression level (AVG\_Signal), standard error of the bead replicates (BEAD\_STDERR),
+number of beads (Avg\_NBEADS) and a detection $p$-value (Detection Pval) which
+estimates the probability of a gene being detected above the background level.
+When exporting this file from BeadStudio, the user is able to choose which
+columns to export.}
+\item{Control probe profile ({\tt AsuragenMAQC-controls.txt}) ({\it recommended}) -
+text file which contains the summarized data for each of the controls on each array,
+which may be useful for diagnostic and calibration purposes.  Refer to the Illumina
+documentation for information on what each control measures.}
+\item{targets file ({\it optional}) - text file created by the user specifying
+which sample is hybridized to each array.
+No such file is provided for this dataset, however we can extract sample
+annotation information from the column headings in the sample probe profile.}
+\end{itemize}
+
+
+Files with normalized intensities (those with {\tt avg} in the name), as well as files with one
+intensity value per gene (files with {\tt gene} in the name) instead of separate intensities
+for different probes targeting the same transcript, are also available in this download.  
+We recommend users work with the non-normalized probe-specific data in their analysis where possible.  Illumina's background correction step, which subtracts the intensities of the negative control probes from the intensities of the regular probes, should also be avoided.
+
+<<readBeadSummary, eval=FALSE>>=
+
+library(beadarray)
+dataFile = "AsuragenMAQC-probe-raw.txt"
+qcFile = "AsuragenMAQC-controls.txt"
+BSData = readBeadSummaryData(dataFile = dataFile,
+qcFile = qcFile, controlID = "ProbeID",
+skip = 0, qc.skip = 0, qc.columns = list(exprs = "AVG_Signal",
+Detection = "Detection Pval"))
+
+@
+
+The arguments of readBeadSummaryData can be modified to suit data from versions 1, 2 or 3
+of BeadStudio. The current default settings should work for version 3 output. Users may need to
+change the argument sep, which specifies if the dataFile is comma or tab delimited and the skip
+argument which specifies the number of lines of header information at the top of the file. Possible
+skip arguments of 0, 7 and 8 have been observed, depending on the version of BeadStudio or way in
+which the data was exported. The columns argument is used to specify which column headings to
+read from dataFile and store in various matrices. Note that the naming of the columns containing
+the standard errors changed between versions of BeadStudio (earlier versions used BEAD STDEV in
+place of BEAD STDERR - be sure to check that the columns argument is appropriate for your data).
+Equivalent arguments (qc.sep, qc.skip and qc.columns) are used to read the data from qcFile. See
+the help page (?readBeadSummaryData) for a complete description of each argument to the function.
+
+
+\section*{Citing beadarray} 
+
+If you use \Rpackage{beadarray} for the analysis or pre-processing of BeadArray data please cite:
+
+Dunning MJ, Smith ML, Ritchie ME, Tavar\'e S, \textbf{beadarray: R classes and
+  methods for Illumina bead-based data}, \emph{Bioinformatics}, \textbf{23}(16):2183-2184
+
+\section{Asking for help on beadarray}
+
+Wherever possible, questions about \Rpackage{beadarray} should be sent to the Bioconductor mailing 
+list\footnote{\texttt{http://www.bioconductor.org}}. This way, all problems and solutions will be
+kept in a searchable archive. When posting to this mailing list, please first consult the 
+\emph{posting guide}. In particular, state the version of \Rpackage{beadarray} and {\tt R} that you 
+are using\footnote{This can be done by pasting the output of running the function \texttt{sessionInfo()}.}, 
+and try to provide a reproducible example of your problem. This will help us to diagnose the problem. 
+
+<<options, echo=FALSE, eval=TRUE>>=
+options(width = 80)
+@
+
+This vignette was built with the following versions of R and 
+<<sessionInfo>>=
+sessionInfo()
+@
+
+
+
+\end{document}

@@ -1,0 +1,83 @@
+New beadarray functionality
+========================================================
+
+A demonstration of the proposed new functionality for beadarray
+```{r}
+
+library(beadarray)
+library(GEOquery)
+library(limma)
+library(GenomicRanges)
+```
+
+A proposal is to faciliate the analyis of publicly-available data. We download the following example
+
+```{r}
+
+url <- "ftp://ftp.ncbi.nih.gov/pub/geo/DATA/SeriesMatrix/GSE33126/"
+filenm <- "GSE33126_series_matrix.txt.gz"
+if(!file.exists("GSE33126_series_matrix.txt.gz")) download.file(paste(url, filenm, sep=""), destfile=filenm)
+gse <- getGEO(filename=filenm)
+head(exprs(gse))
+```
+
+We can convert into a beadarray object
+
+```{r}
+
+summaryData <- ExpressionSetFromGEO(gse)
+summaryData
+head(fData(summaryData))
+
+```
+
+Detection scores could be added by using the no match probes as negative controls. Possibly we could assignment of status when the object is created?
+
+```{r}
+
+fData(summaryData)$Status <- ifelse(fData(summaryData)$PROBEQUALITY=="No match","negative","regular" )
+
+Detection(summaryData) <- calculateDetection(summaryData, status=fData(summaryData)$Status)
+
+```
+
+Likewise for normalisation
+
+```{r}
+summaryData.norm <- normaliseIllumina(summaryData,method="neqc", status=fData(summaryData)$Status)
+boxplot(summaryData.norm)
+```
+
+The user has to be able to select a column to use as Sample Groups
+
+```{r}
+pData(summaryData)[1:3,]
+```
+
+
+
+```{r}
+summaryData.norm <- setSampleGroup(summaryData.norm, pData(summaryData)$source_name_ch1)
+
+summaryData.norm <- simpleDE(summaryData.norm)
+
+lapply(summaryData.norm@deResults, head)
+
+beadarray:::volcanoplot(summaryData.norm)
+```
+
+A useful for function for picking the 'best' probe for each gene based on IQR (by default)
+
+
+```{r}
+collapse
+geneData <- beadarray:::collapse(summaryData)
+geneData
+
+```
+
+A function that will get genomic locations for each probe and create a RangedData object
+
+```{r}
+rng <- toRangedData(summaryData)
+```
