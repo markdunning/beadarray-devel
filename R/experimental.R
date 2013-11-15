@@ -54,7 +54,6 @@ exprs(summaryData) <- exprs(gse)
 phenoData(summaryData) <- phenoData(gse)
 summaryData@channelData[[1]] <- rep("G", length(sampleNames(gse)))
 featureData(summaryData) <- featureData(gse)[,1:3]
-se.exprs(summaryData) <- nObservations(summaryData) <- Detection(summaryData) <- matrix(NA, nrow=length(featureNames(gse)),ncol=length(sampleNames(gse)))
 
 annotation(summaryData) <- switch(annotation(gse), GPL6947="Humanv3", GPL10558="Humanv4", GPL6887="Mousev2", GPL6102="Humanv2")
 summaryData <- addFeatureData(summaryData)

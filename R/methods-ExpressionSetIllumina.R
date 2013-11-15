@@ -41,7 +41,45 @@ setGeneric("LogOdds<-", function(object, value) standardGeneric("LogOdds<-"))
 
 setMethod("[", "ExpressionSetIllumina", function(x, i, j, ..., drop = FALSE) {
 
-  x<-callNextMethod() # x, i, j, ..., drop=drop)
+  if (!missing(j)) {
+    phenoData(x) <- phenoData(x)[j,, ..., drop = drop]
+    protocolData(x) <- protocolData(x)[j,, ..., drop = drop]
+  }
+  
+  if (!missing(i))
+    featureData(x) <- featureData(x)[i,,..., drop=drop]
+  ## assayData; implemented here to avoid function call
+  orig <- assayData(x)
+  ###I took this code from the eSet methods in Biobase
+  storage.mode <- Biobase:::assayDataStorageMode(orig)
+  
+  assayData(x) <-
+    switch(storage.mode,
+           environment =,
+           lockedEnvironment = {
+             aData <- new.env(parent=emptyenv())
+             if (missing(i))                     # j must be present
+               for(nm in ls(orig)) aData[[nm]] <- ifelse(nrow(orig[[nm]])>0,orig[[nm]][, j, ..., drop = drop],orig[[nm]])
+             else {                              # j may or may not be present
+               if (missing(j))
+                 for(nm in ls(orig)) aData[[nm]] <- ifelse(nrow(orig[[nm]])>0,orig[[nm]][i,, ..., drop = drop],orig[[nm]])
+               else
+                 for(nm in ls(orig)) aData[[nm]] <- ifelse(nrow(orig[[nm]])>0,orig[[nm]][i, j, ..., drop = drop],orig[[nm]])
+             }
+             if ("lockedEnvironment" == storage.mode) assayDataEnvLock(aData)
+             aData
+           },
+           list = {
+             if (missing(i))                     # j must be present
+               lapply(orig, function(obj) ifelse(nrow(obj)>0,obj[, j, ..., drop = drop],obj))
+             else {                              # j may or may not be present
+               if (missing(j))
+                 lapply(orig, function(obj) ifelse(nrow(obj)>0,obj[i,, ..., drop = drop],obj))
+               else
+                 lapply(orig, function(obj) ifelse(nrow(obj)>0,obj[i, j, ..., drop = drop],obj))
+             }
+           })
+  
   
   
   
