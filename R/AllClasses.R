@@ -19,7 +19,7 @@ setClass("illuminaChannel",
 )
 
 setClass("ExpressionSetIllumina",
-         representation(QC = "AnnotatedDataFrame", channelData="list",deResults = "AssayData"),
+         representation(QC = "AnnotatedDataFrame", channelData="list",deResults = "AssayData",SampleGroup="character"),
          contains="eSet"
 )
 
