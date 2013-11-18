@@ -2,7 +2,7 @@
 
 simpleDE <- function(summaryData,SampleGroup=NULL,...){
   
-  if(is.null(SampleGroup)) SampleGroup <- pData(summaryData)$SampleGroup
+  if(is.null(SampleGroup)) SampleGroup <- SampleGroup(summaryData)
   
   design <- model.matrix(~0+as.factor(SampleGroup))
   colnames(design) <- as.character(levels(as.factor(SampleGroup)))
@@ -47,7 +47,7 @@ setReplaceMethod("SampleGroup",
                    object
                  })
 
-ExpressionSetFromGEO <- function(gse){
+ExpressionSetIlluminaFromGEO <- function(gse){
   
 summaryData <- new("ExpressionSetIllumina")
 exprs(summaryData) <- exprs(gse)
@@ -55,7 +55,11 @@ phenoData(summaryData) <- phenoData(gse)
 summaryData@channelData[[1]] <- rep("G", length(sampleNames(gse)))
 featureData(summaryData) <- featureData(gse)[,1:3]
 
-annotation(summaryData) <- switch(annotation(gse), GPL6947="Humanv3", GPL10558="Humanv4", GPL6887="Mousev2", GPL6102="Humanv2")
+annotation(summaryData) <- switch(annotation(gse), 
+                                  GPL6947="Humanv3", 
+                                  GPL10558="Humanv4", 
+                                  GPL6887="Mousev2", 
+                                  GPL6102="Humanv2")
 summaryData <- addFeatureData(summaryData)
 
 summaryData
@@ -71,7 +75,11 @@ setAs(from="ExpressionSet", to="ExpressionSetIllumina",
         phenoData(to) <- phenoData(from)  
         featureData(to) <- featureData(from)[,1:2]
         to@channelData[[1]] <- rep("G", length(sampleNames(to)))
-        annotation(to) <- switch(annotation(from), GPL6947="Humanv3", GPL10558="Humanv4", GPL6887="Mousev2", GPL6102="Humanv2")
+        annotation(to) <- switch(annotation(from), 
+                                 GPL6947="Humanv3", 
+                                 GPL10558="Humanv4", 
+                                 GPL6887="Mousev2", 
+                                 GPL6102="Humanv2")
         to                          
        })
 
@@ -124,8 +132,9 @@ toRangedData <- function(summaryData){
       
       locMat <- do.call("rbind", locMat)
       rng <- GRanges(locMat[,1], IRanges(as.numeric(locMat[,2]), as.numeric(locMat[,3]),names=rn),strand=locMat[,4])
-      values(rng) <- fData(summaryData)[match(rn, featureNames(summaryData)),]
+      ##     mcols(rng) <- fData(summaryData)[match(names(rng), featureNames(summaryData)),]
       rng
+    rng
   }
   
 }
