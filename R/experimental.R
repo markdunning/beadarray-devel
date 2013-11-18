@@ -61,6 +61,20 @@ summaryData <- addFeatureData(summaryData)
 summaryData
 }
 
+
+setAs(from="ExpressionSet", to="ExpressionSetIllumina",
+      def=function(from)
+      {
+
+        to <- new("ExpressionSetIllumina")
+        exprs(to) <- exprs(from)
+        phenoData(to) <- phenoData(from)  
+        featureData(to) <- featureData(from)[,1:2]
+        to@channelData[[1]] <- rep("G", length(sampleNames(to)))
+        annotation(to) <- switch(annotation(from), GPL6947="Humanv3", GPL10558="Humanv4", GPL6887="Mousev2", GPL6102="Humanv2")
+        to                          
+       })
+
 setSampleGroup <- function(summaryData, SampleGroup){
   pData(summaryData)$SampleGroup <- SampleGroup
   summaryData
