@@ -61,12 +61,22 @@ setMethod("[", "ExpressionSetIllumina", function(x, i, j, ..., drop = FALSE) {
            lockedEnvironment = {
              aData <- new.env(parent=emptyenv())
              if (missing(i))                     # j must be present
-               for(nm in ls(orig)) aData[[nm]] <- ifelse(nrow(orig[[nm]])>0,orig[[nm]][, j, ..., drop = drop],orig[[nm]])
+               for(nm in ls(orig)) {
+                 if(nrow(orig[[nm]])>0)  aData[[nm]] <- orig[[nm]][, j, ..., drop = drop],
+                 else aData[[nm]] <- orig[[nm]]
+               }
+             
              else {                              # j may or may not be present
                if (missing(j))
-                 for(nm in ls(orig)) aData[[nm]] <- ifelse(nrow(orig[[nm]])>0,orig[[nm]][i,, ..., drop = drop],orig[[nm]])
-               else
-                 for(nm in ls(orig)) aData[[nm]] <- ifelse(nrow(orig[[nm]])>0,orig[[nm]][i, j, ..., drop = drop],orig[[nm]])
+                 for(nm in ls(orig)){
+                   if(nrow(orig[[nm]])>0) aData[[nm]] <- orig[[nm]][i,, ..., drop = drop]
+                    else aData[[nm]] <- orig[[nm]]
+                 }
+                else
+                 for(nm in ls(orig)){ 
+                   if(nrow(orig[[nm]])>0) aData[[nm]] <-orig[[nm]][i, j, ..., drop = drop]
+                   else aData[[nm]] <- orig[[nm]]
+                 }
              }
              if ("lockedEnvironment" == storage.mode) assayDataEnvLock(aData)
              aData
