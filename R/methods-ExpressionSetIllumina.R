@@ -24,6 +24,9 @@ setMethod("initialize", "ExpressionSetIllumina",
             .Object
           })
 
+
+
+
 setGeneric("LogFC", function(object) standardGeneric("LogFC"))
 
 setMethod("LogFC", signature(object="ExpressionSetIllumina"), function(object) assayDataElement(object@deResults, "LogFC"))
@@ -109,7 +112,7 @@ setMethod("[", "ExpressionSetIllumina", function(x, i, j, ..., drop = FALSE) {
   
   
   
-message("Subsetting....")
+
 	if(!is.null(x@QC) && !missing(j)) x@QC<-x@QC[j,]
     
   if(!is.null(x@channelData) && missing(j)) x@channelData<-x@channelData
@@ -138,41 +141,6 @@ message("Subsetting....")
          x
 
 })
-
-
-
-sset <- function(x, i, j, ..., drop = FALSE) {
-  
-  #x<-callNextMethod() # x, i, j, ..., drop=drop)
-  message("Subsetting....")
-  if(!is.null(x@QC) && !missing(j)) x@QC<-x@QC[j,]
-  
-  if(!is.null(x@channelData) && missing(j)) x@channelData<-x@channelData
-  
-  de <- try(x@deResults, silent=T)
-
-  if(class(de)!= "try-error" & length(x@deResults)>0){	
-    
-    if(!missing(i)){
-      # i must be present to subset the DE results
-      orig <- x@deResults
-      aData <- new.env(parent=emptyenv())
-      
-      if (missing(j)){
-        
-        for(nm in ls(orig)) aData[[nm]] <- orig[[nm]][i,, ..., drop = drop]
-      }
-      else {
-        for(nm in ls(orig)) aData[[nm]] <- orig[[nm]][i, j, ..., drop = drop]
-      }
-      
-      x@deResults <- aData
-    }  
-    
-  }
-  x
-  
-}
 
 
 

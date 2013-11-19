@@ -66,8 +66,8 @@ summaryData
 }
 
 
-setAs(from="ExpressionSet", to="ExpressionSetIllumina",
-      def=function(from)
+setAs("ExpressionSet","ExpressionSetIllumina",
+      function(from)
       {
 
         to <- new("ExpressionSetIllumina")

@@ -24,7 +24,7 @@ head(exprs(gse))
 We can convert into a beadarray object
 
 ```{r}
-summaryData <- as(new("ExpressionSet"), gse)
+#summaryData <- new("ExpressionSetIllumina", gse)
 summaryData <- ExpressionSetIlluminaFromGEO(gse)
 summaryData
 head(fData(summaryData))
@@ -57,7 +57,7 @@ pData(summaryData)[1:3,]
 
 
 ```{r}
-summaryData.norm <- setSampleGroup(summaryData.norm, pData(summaryData)$source_name_ch1)
+SampleGroup(summaryData.norm) <- as.character(pData(summaryData)$source_name_ch1)
 
 summaryData.norm <- simpleDE(summaryData.norm)
 
@@ -79,8 +79,6 @@ geneData
 A function that will get genomic locations for each probe and create a RangedData object
 
 ```{r}
-rng <- toRangedData(summaryData)
-duprows <- which(duplicated(names(rng)))
-rng <- rng[-duprows]
-mcols(rng) <- fData(summaryData)[match(names(rng), featureNames(summaryData)),]
+rng <- toRangedData(summaryData.norm)
+
 ```
