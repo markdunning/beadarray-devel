@@ -40,7 +40,9 @@ setGeneric("LogOdds<-", function(object, value) standardGeneric("LogOdds<-"))
 
 
 setMethod("[", "ExpressionSetIllumina", function(x, i, j, ..., drop = FALSE) {
-
+  if (missing(drop))
+    drop <- FALSE
+  
   if (!missing(j)) {
     phenoData(x) <- phenoData(x)[j,, ..., drop = drop]
     protocolData(x) <- protocolData(x)[j,, ..., drop = drop]
@@ -69,16 +71,30 @@ setMethod("[", "ExpressionSetIllumina", function(x, i, j, ..., drop = FALSE) {
              if ("lockedEnvironment" == storage.mode) assayDataEnvLock(aData)
              aData
            },
+           
            list = {
              if (missing(i))                     # j must be present
-               lapply(orig, function(obj) ifelse(nrow(obj)>0,obj[, j, ..., drop = drop],obj))
+               lapply(orig, function(obj) {
+                 if(nrow(obj)>0) obj[, j, ..., drop = drop]
+                 else obj
+               })
+                           
              else {                              # j may or may not be present
                if (missing(j))
-                 lapply(orig, function(obj) ifelse(nrow(obj)>0,obj[i,, ..., drop = drop],obj))
+                 lapply(orig, function(obj){ 
+                   if(nrow(obj)>0) obj[i,, ..., drop = drop]
+                   else obj
+                 })
+                 
+               
                else
-                 lapply(orig, function(obj) ifelse(nrow(obj)>0,obj[i, j, ..., drop = drop],obj))
+                 lapply(orig, function(obj){
+                   if(nrow(obj)>0) obj[i, j, ..., drop = drop]
+                   else obj
+                 }) 
              }
-           })
+           }
+         )
   
   
   
