@@ -49,27 +49,27 @@ setReplaceMethod("SampleGroup",
 
 ExpressionSetIlluminaFromGEO <- function(gse){
   
-summaryData <- new("ExpressionSetIllumina")
-exprs(summaryData) <- exprs(gse)
-phenoData(summaryData) <- phenoData(gse)
-summaryData@channelData[[1]] <- rep("G", length(sampleNames(gse)))
-featureData(summaryData) <- featureData(gse)[,1:3]
-
-annotation(summaryData) <- switch(annotation(gse), 
-                                  GPL6947="Humanv3", 
-                                  GPL10558="Humanv4", 
-                                  GPL6887="Mousev2", 
-                                  GPL6102="Humanv2")
-summaryData <- addFeatureData(summaryData)
-
-summaryData
+  summaryData <- new("ExpressionSetIllumina")
+  exprs(summaryData) <- exprs(gse)
+  phenoData(summaryData) <- phenoData(gse)
+  summaryData@channelData[[1]] <- rep("G", length(sampleNames(gse)))
+  featureData(summaryData) <- featureData(gse)[,1:3]
+  
+  annotation(summaryData) <- switch(annotation(gse), 
+                                    GPL6947="Humanv3", 
+                                    GPL10558="Humanv4", 
+                                    GPL6887="Mousev2", 
+                                    GPL6102="Humanv2")
+  summaryData <- addFeatureData(summaryData)
+  
+  summaryData
 }
 
 
 setAs("ExpressionSet","ExpressionSetIllumina",
       function(from)
       {
-
+        
         to <- new("ExpressionSetIllumina")
         exprs(to) <- exprs(from)
         phenoData(to) <- phenoData(from)  
@@ -81,7 +81,7 @@ setAs("ExpressionSet","ExpressionSetIllumina",
                                  GPL6887="Mousev2", 
                                  GPL6102="Humanv2")
         to                          
-       })
+      })
 
 setSampleGroup <- function(summaryData, SampleGroup){
   pData(summaryData)$SampleGroup <- SampleGroup
@@ -111,30 +111,32 @@ toRangedData <- function(summaryData){
   
   annoLoaded <- require(paste("illumina", annoName, ".db",sep=""), character.only=TRUE)
   
-   if(annoLoaded){
+  if(annoLoaded){
     
     
-      mapEnv <-  as.name(paste("illumina", annoName, "GENOMICLOCATION",sep=""))
-      fn <- featureNames(summaryData)
-      fn <- fn[which(fn %in% mappedkeys(eval(mapEnv)))]
-        
-      locs <- mget(fn,eval(mapEnv),ifnotfound=NA)
-      
-      locs <- lapply(locs, function(x) gsub(" ", ",", x,fixed=T))
-      
-      asLocMatrix <- function(str){
-        x<- do.call("rbind",sapply(strsplit(as.character(str), ",",fixed=T)[[1]], function(x) as.vector(strsplit(x, ":",fixed=T))))
-      }
+    mapEnv <-  as.name(paste("illumina", annoName, "GENOMICLOCATION",sep=""))
+    fn <- featureNames(summaryData)
+    fn <- fn[which(fn %in% mappedkeys(eval(mapEnv)))]
     
-      locMat <- lapply(locs, asLocMatrix)
-      
-      rn <- rep(names(locs), unlist(lapply(locMat, nrow)))
-      
-      locMat <- do.call("rbind", locMat)
-      rng <- GRanges(locMat[,1], IRanges(as.numeric(locMat[,2]), as.numeric(locMat[,3]),names=rn),strand=locMat[,4])
-      ##     mcols(rng) <- fData(summaryData)[match(names(rng), featureNames(summaryData)),]
-      rng
-    rng
+    locs <- mget(fn,eval(mapEnv),ifnotfound=NA)
+    
+    locs <- lapply(locs, function(x) gsub(" ", ",", x,fixed=T))
+    
+    asLocMatrix <- function(str){
+      x<- do.call("rbind",sapply(strsplit(as.character(str), ",",fixed=T)[[1]], function(x) as.vector(strsplit(x, ":",fixed=T))))
+    }
+    
+    locMat <- lapply(locs, asLocMatrix)
+    
+    rn <- rep(names(locs), unlist(lapply(locMat, nrow)))
+    
+    locMat <- do.call("rbind", locMat)
+    rng <- GRanges(locMat[,1], IRanges(as.numeric(locMat[,2]), as.numeric(locMat[,3]),names=rn),strand=locMat[,4])
+    df <- data.frame(LogFC(summaryData), LogOdds(summaryData))
+    colnames(df) <- c("LogFC", "LogOdds")
+    
+    mcols(rng) <- df[match(names(rng), rownames(df)),]
+    sort(rng)
   }
   
 }
@@ -170,5 +172,4 @@ experimentalDesign <- function(summaryData, SampleGroup="SampleGroup", Chip = "S
   ggplot(data, aes(x = Position, y = Chip, fill=Group)) + geom_tile()
   
 }
-  
-  
+

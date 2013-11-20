@@ -65,7 +65,7 @@ setMethod("[", "ExpressionSetIllumina", function(x, i, j, ..., drop = FALSE) {
              aData <- new.env(parent=emptyenv())
              if (missing(i))                     # j must be present
                for(nm in ls(orig)) {
-                 if(nrow(orig[[nm]])>0)  aData[[nm]] <- orig[[nm]][, j, ..., drop = drop],
+                 if(nrow(orig[[nm]])>0)  aData[[nm]] <- orig[[nm]][, j, ..., drop = drop]
                  else aData[[nm]] <- orig[[nm]]
                }
              
