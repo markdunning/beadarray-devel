@@ -1,0 +1,89 @@
+%\VignetteIndexEntry{Genomic Annotation Practical}
+%\VignettePackage{GeneticsHTSCourse}
+%\VignetteEngine{knitr::knitr}
+
+% To compile this document
+% library('knitr'); rm(list=ls()); knit('DESeq2.Rnw')
+
+\documentclass[12pt]{article}
+\newcommand{\usecase}{\textit{\textbf{Use Case: }}}
+
+<<knitr, echo=FALSE, results="hide">>=
+library("knitr")
+opts_chunk$set(tidy=FALSE,dev="png",fig.show="as.is",
+               fig.width=4,fig.height=4.5,
+               message=FALSE,eval=T)
+@ 
+
+<<style, eval=TRUE, echo=F, results="asis">>=
+BiocStyle::latex()
+@
+
+
+\title{Annotation of Illumina expression data in Bioconductor}
+
+\author{Mark Dunning}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+\maketitle
+\tableofcontents
+\section{Introduction}
+In this vignette we describe the interaction between the \Biocpkg{beadarray} and various annotation packages, such as \Biocannopkg{illuminaHumanv4.db}\\.
+
+As with other microarray technologies, the definition of probes designed by Illumina is not  ideal. We, and others, have found that taken the annotation quality account is beneficial for analysis.
+
+Packages such as \Biocannopkg{illuminaHumanv4.db} contain extra information about each probe such as the quality score we have determined through re-annotation, whether the probe targets a transcript or intronic region, and the actual sequence itself. The novel mappings provided by a package can be retrieved by the \Rfunction{illuminaHumanv4listNewMappings} function, and the full table retreived by \Rfunction{illuminaHumanv4fullReannotation}.
+
+<<>>=
+library(illuminaHumanv4.db)
+illuminaHumanv4listNewMappings()
+fullanno <- illuminaHumanv4fullReannotation()
+head(fullanno)
+@
+
+Each aspect of the reannotation is consolidated into a quality score, that can be used to gauge the overall reliabilty of a probe.
+
+<<>>=
+
+keys <- mappedkeys(illuminaHumanv4PROBEQUALITY)
+qual <- unlist(mget(keys, illuminaHumanv4PROBEQUALITY))
+table(qual)
+@
+
+The \Rcode{PROBEQUALITY} is reflected in the overall intensity of a probe.
+
+<<fig.width=12>>=
+library(beadarrayExampleData)
+data(exampleSummaryData)
+
+pq <-unlist(mget(featureNames(exampleSummaryData),illuminaHumanv4PROBEQUALITY,
+                 ifnotfound=NA))
+boxplot(exprs(exampleSummaryData)[,1] ~ pq)
+
+@
+
+The \Rcode{CODINGZONE} mapping gives information about whether a probe targets a transciptomic, intronic or intergenic region. 
+
+<<fig.width=12>>=
+library(beadarrayExampleData)
+data(exampleSummaryData)
+
+cz <-unlist(mget(featureNames(exampleSummaryData),illuminaHumanv4CODINGZONE,
+                 ifnotfound=NA))
+boxplot(exprs(exampleSummaryData)[,1] ~ cz)
+
+@
+
+<<>>=
+seqs <- mget(keys[1:4], illuminaHumanv4PROBESEQUENCE)
+seqs
+@
+
+\section{Applications to filtering}
+
+\section{Converting to \Rclass{GRanges} objects}
+
+
+
+\end{document}
