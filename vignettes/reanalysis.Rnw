@@ -1,0 +1,98 @@
+%\VignetteIndexEntry{Genomic Annotation Practical}
+%\VignettePackage{GeneticsHTSCourse}
+%\VignetteEngine{knitr::knitr}
+
+% To compile this document
+% library('knitr'); rm(list=ls()); knit('DESeq2.Rnw')
+
+\documentclass[12pt]{article}
+\newcommand{\usecase}{\textit{\textbf{Use Case: }}}
+
+<<knitr, echo=FALSE, results="hide">>=
+library("knitr")
+opts_chunk$set(tidy=FALSE,dev="png",fig.show="as.is",
+               fig.width=4,fig.height=4.5,
+               message=FALSE,eval=T)
+@ 
+
+<<style, eval=TRUE, echo=F, results="asis">>=
+BiocStyle::latex()
+@
+
+
+\title{Re-analysis of public datasets with beadarray}
+
+\author{Mark Dunning}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+\maketitle
+\tableofcontents
+\section{Introduction}
+
+In this vignette we describe the facilities in beadarray that can assist with the (re-)analysis of datasets from public repositories.
+
+We use the \Biocpkg{GEOquery} package to import the dataset into an \Rclass{ExpressionSet} object
+
+<<>>=
+library(GEOquery)
+library(beadarray)
+@
+
+<<echo=F>>=
+ExpressionSetIlluminaFromGEO <- function(gse){
+  
+  summaryData <- new("ExpressionSetIllumina")
+  exprs(summaryData) <- exprs(gse)
+  phenoData(summaryData) <- phenoData(gse)
+  summaryData@channelData[[1]] <- rep("G", length(sampleNames(gse)))
+  featureData(summaryData) <- featureData(gse)[,1:3]
+  
+  annotation(summaryData) <- switch(annotation(gse), 
+                                    GPL6947="Humanv3", 
+                                    GPL10558="Humanv4", 
+                                    GPL6887="Mousev2", 
+                                    GPL6102="Humanv2")
+  summaryData <- addFeatureData(summaryData)
+  
+  summaryData
+}
+@
+
+<<>>=
+library(GEOquery)
+url <- "ftp://ftp.ncbi.nih.gov/pub/geo/DATA/SeriesMatrix/GSE33126/"
+filenm <- "GSE33126_series_matrix.txt.gz"
+if(!file.exists("GSE33126_series_matrix.txt.gz")) download.file(paste(url, filenm, sep=""), destfile=filenm)
+gse <- getGEO(filename=filenm)
+head(exprs(gse))
+@
+
+Now we convert this to an \Rclass{ExpressionSetIllumina}; \Biocpkg{beadarray}'s native class for dealing with summarised data. You should notice that the object is automatically annotated against the latest available annotation package.
+
+<<>>=
+summaryData <- ExpressionSetIlluminaFromGEO(gse)
+summaryData
+head(fData(summaryData))
+
+@
+
+As we have annotated using the latest packages, we have imported the probe quality scores. We can calculate Detection scores by using the 'No match' probes as a reference; useful as data in repositories rarely export these data
+
+<<>>=
+fData(summaryData)$Status <- ifelse(fData(summaryData)$PROBEQUALITY=="No match","negative","regular" )
+
+Detection(summaryData) <- calculateDetection(summaryData, status=fData(summaryData)$Status)
+
+@
+
+The 'neqc' normalisation method from limma can also be used now. 
+<<>>=
+summaryData.norm <- normaliseIllumina(summaryData,method="neqc", status=fData(summaryData)$Status)
+boxplot(summaryData.norm)
+@
+
+
+
+
+\end{document}
