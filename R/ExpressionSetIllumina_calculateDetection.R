@@ -9,6 +9,8 @@ negInd = which(status == negativeLabel)
 
 detect= function(x) 1 - (sum(x>negvals)/(length(negvals)))
 
+pb <- txtProgressBar(min=1,max=ncol(exprs(BSData)),style=3)
+
 
 	for(i in 1:ncol(exprs(BSData))){
 
@@ -21,7 +23,8 @@ detect= function(x) 1 - (sum(x>negvals)/(length(negvals)))
 		negvals = negvals[!is.na(negvals)]
 
 		detScores[,i] = sapply(exprs(BSData)[,i], detect)
-
+    setTxtProgressBar(pb, i)
+    
 	}
 
 colnames(detScores) =sampleNames(BSData)
