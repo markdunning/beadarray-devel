@@ -149,9 +149,11 @@ exprs=as.matrix(exprs)
 
 
 
-maplots <- function(data, sampleFactor = NULL){
+maplots <- function(data, sampleFactor = NULL,max.points=10000, do.log=T){
 
-  e <- exprs(data)
+  if(do.log) e <- log2(exprs(data))
+  
+  if(nrow(e) > max.points) e <- e[sample(1:nrow(e),max.points),]
   
   if(is.null(sampleFactor)){
   
@@ -177,14 +179,15 @@ maplots <- function(data, sampleFactor = NULL){
   colnames(mvals) <- colnames(avals) <- colnames(otherarrays)
   
   
-  df <- data.frame(melt(mvals),melt(avals), RefArray = colnames(e)[i])
+  df <- data.frame(melt(mvals),melt(avals))
 
     
-  ggplot(df,aes(x=value.1,y=value))+
+  plts[[1]] <- ggplot(df,aes(x=value.1,y=value))+
       stat_density2d(aes(alpha=..level..), geom="polygon") +
       scale_alpha_continuous(limits=c(0,0.2),breaks=seq(0,0.2,by=0.025))+
-      geom_point(colour="steelblue",alpha=0.02)+ theme_bw()+geom_smooth()+xlab("A") + ylab("M") + facet_wrap(~Var2) + theme(legend.position="none")
+      geom_point(colour="steelblue",alpha=0.02)+ theme_bw()+geom_smooth(col="red",method="loess")+xlab("A") + ylab("M") + facet_wrap(~Var2) + theme(legend.position="none")
 
+  
   }
   
   else{
@@ -211,7 +214,7 @@ maplots <- function(data, sampleFactor = NULL){
        colnames(mvals) <- colnames(avals) <- colnames(otherarrays)
        
        
-       df[[i]] <- data.frame(melt(mvals),melt(avals), RefArray = esets[[i]][j])
+       df[[j]] <- data.frame(melt(mvals),melt(avals), RefArray = esets[[i]][j])
                             
       }
       
@@ -219,16 +222,19 @@ maplots <- function(data, sampleFactor = NULL){
       plts[[i]] <- ggplot(df,aes(x=value.1,y=value))+
         stat_density2d(aes(alpha=..level..), geom="polygon") +
         scale_alpha_continuous(limits=c(0,0.2),breaks=seq(0,0.2,by=0.025))+
-        geom_point(colour="steelblue",alpha=0.02)+ theme_bw()+geom_smooth()+xlab("A") + ylab("M") + facet_wrap(RefArray~Var2) + theme(legend.position="none")
+        geom_point(colour="steelblue",alpha=0.02)+ theme_bw()+geom_smooth(col="red",method="loess")+xlab("A") + ylab("M") + facet_wrap(RefArray~Var2,ncol=length(esets[[i]])-1) + theme(legend.position="none")
       
       
       
     }
     
-    
+    names(plts) <- names(esets)
   }
+
   plts
 }
+
+
 
                                                               
                                                                      
