@@ -73,7 +73,10 @@ export(toRangedData)
 export(setSampleGroup)
 
 exportMethods(LogFC, "LogFC<-", "LogOdds<-", LogOdds)
-exportMethods(SampleGroup, "SampleGroup<-", SampleGroup, "SampleGroup<-")
+exportMethods(SampleGroup, "SampleGroup<-")
+
+exportMethods(DesignMatrix, "DesignMatrix<-")
+exportMethods(ContrastMatrix, "ContrastMatrix<-")
 
 
 ##deprecated
